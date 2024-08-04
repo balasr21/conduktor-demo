@@ -1,9 +1,8 @@
 package com.conduktor.demo.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
 import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record UserData(
     @JsonProperty("_id") String id,

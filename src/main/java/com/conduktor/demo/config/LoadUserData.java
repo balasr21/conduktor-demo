@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.concurrent.ExecutionException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +15,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-@RequiredArgsConstructor
 @Slf4j
 @Service
 public class LoadUserData implements SmartInitializingSingleton {
@@ -25,8 +23,16 @@ public class LoadUserData implements SmartInitializingSingleton {
 
   private final ObjectMapper objectMapper;
 
-  @Value("${user.data.topic.name}")
-  private String topicName;
+  private final String topicName;
+
+  public LoadUserData(
+      KafkaTemplate<String, String> kafkaTemplate,
+      @Value("${user.data.topic.name}") String topicName,
+      ObjectMapper objectMapper) {
+    this.kafkaTemplate = kafkaTemplate;
+    this.topicName = topicName;
+    this.objectMapper = objectMapper;
+  }
 
   /**
    * This method is invoked right before the application is ready. It loads data into a Kafka topic
@@ -40,12 +46,16 @@ public class LoadUserData implements SmartInitializingSingleton {
           .forEach(
               userData -> {
                 try {
-                  kafkaTemplate
-                      .send(topicName, userData.id(), objectMapper.writeValueAsString(userData))
-                      .get()
-                      .getRecordMetadata()
-                      .partition();
-                  log.info("data.load.success for user {}", userData.id());
+                  var recordMetadata =
+                      kafkaTemplate
+                          .send(topicName, userData.id(), objectMapper.writeValueAsString(userData))
+                          .get()
+                          .getRecordMetadata();
+                  log.info(
+                      "data.load.success for user {} in partition {} with offset {}",
+                      userData.id(),
+                      recordMetadata.partition(),
+                      recordMetadata.offset());
                 } catch (JsonProcessingException | ExecutionException | InterruptedException e) {
                   log.info("data.load.error for user {}", userData.id());
                   throw new RuntimeException(e); // TODO Custom exception

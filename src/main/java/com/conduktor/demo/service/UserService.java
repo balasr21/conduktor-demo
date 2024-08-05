@@ -63,6 +63,12 @@ public class UserService {
         }
       }
     }
+    log.info(
+        "Collected {} user data from topic {} with offset {} and limit of {}",
+        userData.size(),
+        topicName,
+        offset,
+        limit);
     return userData;
   }
 

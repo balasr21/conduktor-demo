@@ -70,7 +70,9 @@ The below are the list of tools and framework used in the project!
 ### 2.3 Solution & Assumptions
 
 1. Given that there can be 3 partitions, each partition can have separate offset of messages.Since the endpoint is retrieving by giving an offset, the service retrieves data from all partitions and responds aggregated results
-2. This APP is currently not secured by spring security, the endpoint can be accessed without any auth. This is left for future enhancements to give more priority to the changes
+2. This app loads test data using `KafkaTemplate`(instead of `KafkaProducer`) which internally uses `KafkaProducer`
+3. Since the number of records `N` is optional, default limit of `10` is considered
+3. This APP is currently not secured by spring security, the endpoint can be accessed without any auth. This is left for future enhancements to give more priority to the changes
 
 <hr>
 

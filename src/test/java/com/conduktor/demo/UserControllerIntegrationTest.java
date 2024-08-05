@@ -1,11 +1,9 @@
 package com.conduktor.demo;
 
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.junit.Assert.assertThrows;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.conduktor.demo.exception.InvalidDataException;
 import com.conduktor.demo.model.Content;
 import com.conduktor.demo.model.UserData;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -73,8 +71,7 @@ class UserControllerIntegrationTest {
   }
 
   @Test
-  void
-      givenDataIsLoadedInTopic_whenGetByTopicIsFetchedForUnAvailableOffsets_thenNoRecordsShouldBeRetrieved()
+  void givenDataIsLoadedInTopic_whenGetByTopicIsFetchedForUnAvailableOffsets_thenNoRecordsShouldBeRetrieved()
           throws Exception {
     String baseUrl = "/api/v1/topic/%s/%d?count=%d";
     String topicName = "user-data";
@@ -88,19 +85,25 @@ class UserControllerIntegrationTest {
 
   @ParameterizedTest
   @CsvSource({"-10,10", "10,-10"})
-  void
-      givenDataIsLoadedInTopic_whenGetByTopicIsFetchedForNegativeOffsets_thenNoRecordsShouldBeRetrieved(
-          long offset, int count) {
+  void givenDataIsLoadedInTopic_whenGetByTopicIsFetchedForNegativeOffsetsOrLimit_thenNoRecordsShouldBeRetrieved(
+          long offset, int count) throws Exception {
     String baseUrl = "/api/v1/topic/%s/%d?count=%d";
     String topicName = "user-data";
 
     String url = String.format(baseUrl, topicName, offset, count);
-    assertThrows(
-        InvalidDataException.class,
-        () -> {
-          ResultActions resultActions = mockMvc.perform(MockMvcRequestBuilders.get(url));
-          resultActions.andExpect(status().isBadRequest());
-        });
+    mockMvc.perform(MockMvcRequestBuilders.get(url)).andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void givenDataIsLoadedInTopic_whenGetByTopicIsFetchedWithoutLimit_thenAtMost10RecordsShouldBeRetrieved()
+          throws Exception {
+    String baseUrl = "/api/v1/topic/%s/%d";
+    String topicName = "user-data";
+    String url = String.format(baseUrl, topicName, 0);
+    ResultActions resultActions = mockMvc.perform(MockMvcRequestBuilders.get(url));
+    resultActions
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(5))); // only 5 records available , all should be returned
   }
 
   public List<UserData> getUserData() throws IOException {

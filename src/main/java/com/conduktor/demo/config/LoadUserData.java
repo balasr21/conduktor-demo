@@ -1,8 +1,7 @@
 package com.conduktor.demo.config;
 
+import com.conduktor.demo.exception.LoadDataException;
 import com.conduktor.demo.model.Content;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,16 +20,20 @@ public class LoadUserData implements SmartInitializingSingleton {
 
   private final KafkaTemplate<String, String> kafkaTemplate;
 
-  private final ObjectMapper objectMapper;
+  private final DataSafeObjectMapper objectMapper;
 
   private final String topicName;
+
+  private final String userDataFilePath;
 
   public LoadUserData(
       KafkaTemplate<String, String> kafkaTemplate,
       @Value("${user.data.topic.name}") String topicName,
-      ObjectMapper objectMapper) {
+      @Value("${user.data.file.path}") String userDataFilePath,
+      DataSafeObjectMapper objectMapper) {
     this.kafkaTemplate = kafkaTemplate;
     this.topicName = topicName;
+    this.userDataFilePath = userDataFilePath;
     this.objectMapper = objectMapper;
   }
 
@@ -42,7 +45,8 @@ public class LoadUserData implements SmartInitializingSingleton {
   public void afterSingletonsInstantiated() {
     log.info("data.load.start");
     try {
-      getUserData().ctRoot().stream()
+      getUserData()
+          .ctRoot()
           .forEach(
               userData -> {
                 try {
@@ -56,15 +60,16 @@ public class LoadUserData implements SmartInitializingSingleton {
                       userData.id(),
                       recordMetadata.partition(),
                       recordMetadata.offset());
-                } catch (JsonProcessingException | ExecutionException | InterruptedException e) {
+                } catch (ExecutionException | InterruptedException e) {
                   log.info("data.load.error for user {}", userData.id());
-                  throw new RuntimeException(e); // TODO Custom exception
+                  Thread.currentThread().interrupt();
+                  throw new LoadDataException("InterruptedException: " + e.getMessage(), e);
                 }
               });
       log.info("data.load.complete");
     } catch (IOException e) {
       log.warn("Error while loading data from classpath");
-      throw new RuntimeException(e); // TODO Custom exception
+      throw new LoadDataException("IOException: " + e.getMessage(), e);
     }
   }
 
@@ -75,6 +80,6 @@ public class LoadUserData implements SmartInitializingSingleton {
   }
 
   public Resource loadUserDataWithClassPathResource() {
-    return new ClassPathResource("static/random-people-data.json");
+    return new ClassPathResource(userDataFilePath);
   }
 }

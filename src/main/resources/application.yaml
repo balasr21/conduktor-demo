@@ -1,0 +1,18 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: demo
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: conduktor-demo
+      enable-auto-commit: false
+
+user:
+  data:
+    topic:
+      name: user-data
+    file:
+      path: static/random-people-data.json

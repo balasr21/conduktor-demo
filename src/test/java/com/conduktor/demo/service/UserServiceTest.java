@@ -56,6 +56,8 @@ class UserServiceTest {
     when(consumerFactory.createConsumer()).thenReturn(consumer);
     when(consumer.partitionsFor(topicName))
         .thenReturn(List.of(new PartitionInfo(topicName, 0, null, null, null)));
+    TopicPartition topicPartition = new TopicPartition(topicName, 0);
+    when(consumer.endOffsets(List.of(topicPartition))).thenReturn(Map.of(topicPartition, 2l));
 
     ConsumerRecords<String, String> consumerRecords1 =
         getConsumerRecord(topicName, "368YCC2THQH1HEAQ");

@@ -6,6 +6,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -46,16 +48,16 @@ public class UserService {
     try (KafkaConsumer<String, String> consumer =
         (KafkaConsumer<String, String>) consumerFactory.createConsumer()) {
       List<PartitionInfo> partitions = consumer.partitionsFor(topicName);
+      int numberOfRecordsAdded = 0;
 
       for (PartitionInfo partition : partitions) {
         log.info("Collecting userdata from partition {}", partition.partition());
-        int numberOfRecordsAdded = 0;
-        seekForPartitionOffset(topicName, offset, partition, consumer);
-        while (numberOfRecordsAdded < limit) {
+        long lastOffsetRecordInPartition =
+            seekForPartitionOffsetAndGetLastOffsetRecord(topicName, offset, partition, consumer);
+        while (isRecordsAvailableAfterOffset(offset, lastOffsetRecordInPartition)
+            && isRecordAddedUnderLimit(numberOfRecordsAdded, lastOffsetRecordInPartition, limit)) {
           ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
-          if (records.isEmpty()) {
-            break; // Break current partition iteration if no records found at current offset
-          }
+
           for (ConsumerRecord<String, String> consumerRecord : records) {
             if (numberOfRecordsAdded++ >= limit) break;
             userData.add(objectMapper.readValue(consumerRecord.value(), UserData.class));
@@ -64,12 +66,21 @@ public class UserService {
       }
     }
     log.info(
-        "Collected {} user data from topic {} with offset {} and limit of {}",
+        "Collected {} user data from topic {} with offset {} and count of {}",
         userData.size(),
         topicName,
         offset,
         limit);
     return userData;
+  }
+
+  private boolean isRecordAddedUnderLimit(
+      int numberOfRecordsAdded, long lastOffsetRecordInPartition, int limit) {
+    return numberOfRecordsAdded < limit && (lastOffsetRecordInPartition + 1) > numberOfRecordsAdded;
+  }
+
+  private boolean isRecordsAvailableAfterOffset(long offset, long lastOffsetRecordInPartition) {
+    return lastOffsetRecordInPartition > 0 && offset < lastOffsetRecordInPartition;
   }
 
   /**
@@ -80,7 +91,7 @@ public class UserService {
    * @param partition
    * @param consumer
    */
-  private static void seekForPartitionOffset(
+  private static long seekForPartitionOffsetAndGetLastOffsetRecord(
       String topicName,
       long offset,
       PartitionInfo partition,
@@ -88,5 +99,8 @@ public class UserService {
     TopicPartition topicPartition = new TopicPartition(topicName, partition.partition());
     consumer.assign(Collections.singletonList(topicPartition));
     consumer.seek(topicPartition, offset);
+    Map<TopicPartition, Long> endOffset =
+        consumer.endOffsets(List.of(new TopicPartition(topicName, partition.partition())));
+    return !endOffset.isEmpty() ? endOffset.get(topicPartition) - 1 : -1;
   }
 }

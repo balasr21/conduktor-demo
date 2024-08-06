@@ -71,7 +71,22 @@ class UserControllerIntegrationTest {
   }
 
   @Test
-  void givenDataIsLoadedInTopic_whenGetByTopicIsFetchedForUnAvailableOffsets_thenNoRecordsShouldBeRetrieved()
+  void
+      givenDataIsLoadedInTopic_whenGetByTopicIsFetchedForTwoRecords_thenTwoRecordShouldBeRetrieved()
+          throws Exception {
+    String baseUrl = "/api/v1/topic/%s/%d?count=%d";
+    String topicName = "user-data";
+    long offset = 0;
+    int count = 2;
+
+    String url = String.format(baseUrl, topicName, offset, count);
+    ResultActions resultActions = mockMvc.perform(MockMvcRequestBuilders.get(url));
+    resultActions.andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(2)));
+  }
+
+  @Test
+  void
+      givenDataIsLoadedInTopic_whenGetByTopicIsFetchedForUnAvailableOffsets_thenNoRecordsShouldBeRetrieved()
           throws Exception {
     String baseUrl = "/api/v1/topic/%s/%d?count=%d";
     String topicName = "user-data";
@@ -85,7 +100,8 @@ class UserControllerIntegrationTest {
 
   @ParameterizedTest
   @CsvSource({"-10,10", "10,-10"})
-  void givenDataIsLoadedInTopic_whenGetByTopicIsFetchedForNegativeOffsetsOrLimit_thenNoRecordsShouldBeRetrieved(
+  void
+      givenDataIsLoadedInTopic_whenGetByTopicIsFetchedForNegativeOffsetsOrLimit_thenNoRecordsShouldBeRetrieved(
           long offset, int count) throws Exception {
     String baseUrl = "/api/v1/topic/%s/%d?count=%d";
     String topicName = "user-data";
@@ -95,7 +111,8 @@ class UserControllerIntegrationTest {
   }
 
   @Test
-  void givenDataIsLoadedInTopic_whenGetByTopicIsFetchedWithoutLimit_thenAtMost10RecordsShouldBeRetrieved()
+  void
+      givenDataIsLoadedInTopic_whenGetByTopicIsFetchedWithoutLimit_thenAtMost10RecordsShouldBeRetrieved()
           throws Exception {
     String baseUrl = "/api/v1/topic/%s/%d";
     String topicName = "user-data";

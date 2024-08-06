@@ -33,9 +33,9 @@ public class UserController {
       @RequestParam(value = "count", required = false) Integer limit) {
     if (offset < 0 || (limit != null && limit < 0)) {
       log.warn(
-          "Invalid request received for topic {} offset {} limit {}", topicName, offset, limit);
+          "Invalid request received for topic {} offset {} count {}", topicName, offset, limit);
       throw new InvalidDataException(
-          "Invalid request received for topic " + topicName + " with invalid offset/limit");
+          "Invalid request received for topic " + topicName + " with invalid offset/count");
     }
     return new ResponseEntity<>(
         userService.peek(topicName, offset, limit == null ? DEFAULT_LIMIT : limit), HttpStatus.OK);

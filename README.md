@@ -69,9 +69,9 @@ The below are the list of tools and framework used in the project!
 
 ### 2.3 Solution & Assumptions
 
-1. Given that there can be 3 partitions, each partition can have separate offset of messages.Since the endpoint is retrieving by giving an offset, the service retrieves data from all partitions and responds aggregated results
+1. Given that there can be 3 partitions, each partition can have separate offset of messages.Since the endpoint is retrieving by giving an offset (without considering partition as its internal), the service retrieves data from all partitions and responds aggregated results but stops once the given limit is reached
 2. This app loads test data using `KafkaTemplate`(instead of `KafkaProducer`) which internally uses `KafkaProducer`
-3. Since the number of records `N` is optional, default limit of `10` is considered
+3. Since the number of records `N` is optional, default limit of `10` is considered but could be Integer.MAX_VALUE as well(if we want to fetch all)
 3. This APP is currently not secured by spring security, the endpoint can be accessed without any auth. This is left for future enhancements to give more priority to the changes
 
 <hr>
@@ -100,7 +100,8 @@ mvn spring-boot:run
 
 ## 4. Future Enhancements
 
-1. Caching - For the given Topic, Offset - we can cache the response
+1. As of this submission, docker compose scripts needs to be manually run up and down. It would be nice to embed this as part of app start and tear down
+2. Caching - For the given Topic, Offset - we can cache the response
    For the subsequent requests if number of records is within our stored range we can filter and retrieve it.
    If not we can retrieve from broker and update cache
 
@@ -110,7 +111,7 @@ mvn spring-boot:run
    Request 3 : test_topic/0?count=50 -> Update cache by making request to kafka API from offset 0 or make requests for offset starting from 11 and then update cache
    ``` 
 
-2. Add spring security for the project(may be use IAM)
-3. Expose API using Swagger/OpenAPI
-4. Log configuration
-5. Handling exceptions by defining error models which contains attributes for granular error details
+3. Add spring security for the project(may be use IAM)
+4. Expose API using Swagger/OpenAPI
+5. Log configuration
+6. Handling exceptions by defining error models which contains attributes for granular error details
